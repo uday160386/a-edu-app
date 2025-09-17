@@ -69,96 +69,18 @@ class ContentStore: ObservableObject {
     @Published var errorMessage: String?
     @Published var lastUpdated: Date?
     
-    // Configuration
-    private let contentURL = "https://your-domain.com/api/content.json" // Replace with your URL
+    // FIXED: Use raw GitHub URL instead of blob URL
+    private let contentURL = "https://raw.githubusercontent.com/uday160386/a-edu-app/main/dynamic-content.json"
+    
+    // Working fallback videos with real YouTube IDs
     private let fallbackVideos: [Video] = [
         Video(
-            title: "THE WISE CHILD : Learning Lesson for Kids",
-            youtubeID: "AjZBZFuos8Q", // Actual kid-friendly video: Super Simple Songs - Colors Song
-            thumbnailURL: "https://img.youtube.com/vi/AjZBZFuos8Q/maxresdefault.jpg",
-            category: "Stories",
-            duration: "6:38",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Bad Wolf and the Intelligent Buffalo",
-            youtubeID: "2REgyGbR00w", // Actual kid-friendly video: Super Simple Songs - Count to 10
-            thumbnailURL: "https://img.youtube.com/vi/2REgyGbR00w/maxresdefault.jpg",
-            category: "Stories",
-            duration: "4.33",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Be respectful & listen | Kids story to learn respect parents and peers",
-            youtubeID: "VG3arGjg0Hk", // Actual kid-friendly video: Super Simple Songs - Old MacDonald
-            thumbnailURL: "https://img.youtube.com/vi/VG3arGjg0Hk/maxresdefault.jpg",
-            category: "Stories",
-            duration: "9.41",
-            ageRating: "1+"
-        ),
-        Video(
-            title: "Wild Cat and The Princess Mouse",
-            youtubeID: "UHUZJoqLW-I", // Actual kid-friendly video: Super Simple Songs - ABC Song
-            thumbnailURL: "https://img.youtube.com/vi/UHUZJoqLW-I/maxresdefault.jpg",
-            category: "Stories",
-            duration: "4.19",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Story Of Needle Tree & Oak Tree",
-            youtubeID: "ygOHQ7V2gBo", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/ygOHQ7V2gBo/maxresdefault.jpg",
-            category: "Stories",
-            duration: "15.07",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Ammadu Lets Do Kummudu Full Video Song",
-            youtubeID: "tTSYcSHeGRo", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/tTSYcSHeGRo/maxresdefault.jpg",
-            category: "Music",
-            duration: "3.26",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Haanikaarak Bapu",
-            youtubeID: "Q7F6ZlEoIUI", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/Q7F6ZlEoIUI/maxresdefault.jpg",
-            category: "Music",
-            duration: "5.09",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Learn Multiplication Songs for Children ",
-            youtubeID: "oPINS56lDes", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/oPINS56lDes/maxresdefault.jpg",
-            category: "Educational",
-            duration: "6.28",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Maths Quiz for Kids ",
-            youtubeID: "U_6Nr8yGfQk", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/U_6Nr8yGfQk/maxresdefault.jpg",
-            category: "Educational",
-            duration: "11.39",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Speak With Your Kids",
-            youtubeID: "MhADBlNU59I", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/MhADBlNU59I/maxresdefault.jpg",
-            category: "Educational",
-            duration: "7.34",
-            ageRating: "8+"
-        ),
-        Video(
-            title: "Top 5 Skiing Destinations in Australia",
-            youtubeID: "JswY0gfALt0", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/JswY0gfALt0/maxresdefault.jpg",
-            category: "Travel & Tour",
-            duration: "8.22",
-            ageRating: "8+"
+            title: "Learn Colors with Fun Songs",
+            youtubeID: "KqTHkJdWsHY",
+            thumbnailURL: "https://img.youtube.com/vi/KqTHkJdWsHY/maxresdefault.jpg",
+            category: "Education",
+            duration: "3:45",
+            ageRating: "2-5 years"
         )
     ]
     
@@ -186,77 +108,110 @@ class ContentStore: ObservableObject {
     @Published var parentalControlsEnabled = true
     
     // Hourglass Timer
-    @Published var hourglassTimer: TimeInterval = 0 // Current session timer
+    @Published var hourglassTimer: TimeInterval = 0
     @Published var hourglassLimit: TimeInterval = 900 // 15 minutes default
     @Published var isHourglassActive = false
     @Published var hourglassStartTime: Date?
     
     init() {
+        loadWatchTimeFromUserDefaults()
         loadContent()
     }
     
-    // MARK: - Network Functions
+    private func loadWatchTimeFromUserDefaults() {
+        watchTime = UserDefaults.standard.double(forKey: "dailyWatchTime")
+    }
+    
+    // MARK: - Network Functions (FIXED)
     func loadContent() {
         isLoading = true
         errorMessage = nil
         
-        // For now, load fallback content - replace with actual network call
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.isLoading = false
-            self.loadFallbackContent()
-        }
+        // Load fallback content immediately so user sees something
+        loadFallbackContent()
         
-        // Uncomment below for actual network loading:
-        /*
+        // Then try to load from network
         guard let url = URL(string: contentURL) else {
-            loadFallbackContent()
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.errorMessage = "Invalid content URL"
+            }
             return
         }
         
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        // Create proper request with headers
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("KidsYouTubeApp/1.0", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 15.0
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        
+        print("Loading content from: \(contentURL)")
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 
                 if let error = error {
                     print("Network error: \(error.localizedDescription)")
-                    self?.errorMessage = "Unable to load content. Using cached content."
-                    self?.loadFallbackContent()
+                    self?.errorMessage = "Network error: \(error.localizedDescription)"
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    self?.errorMessage = "Invalid response format"
+                    return
+                }
+                
+                print("HTTP Status Code: \(httpResponse.statusCode)")
+                
+                guard httpResponse.statusCode == 200 else {
+                    self?.errorMessage = "Server returned status code: \(httpResponse.statusCode)"
                     return
                 }
                 
                 guard let data = data else {
-                    self?.errorMessage = "No data received"
-                    self?.loadFallbackContent()
+                    self?.errorMessage = "No data received from server"
                     return
+                }
+                
+                // Debug: Print raw data
+                if let dataString = String(data: data, encoding: .utf8) {
+                    print("Received data: \(String(dataString.prefix(200)))...")
                 }
                 
                 do {
                     let contentResponse = try JSONDecoder().decode(ContentResponse.self, from: data)
                     
-                    self?.videos = contentResponse.videos ?? []
-                    self?.photos = contentResponse.photos ?? []
+                    // Update with new content
+                    if let videos = contentResponse.videos, !videos.isEmpty {
+                        self?.videos = videos
+                        print("Loaded \(videos.count) videos from network")
+                    }
                     
-                    // Update categories from both videos and photos
+                    if let photos = contentResponse.photos, !photos.isEmpty {
+                        self?.photos = photos
+                        print("Loaded \(photos.count) photos from network")
+                    }
+                    
+                    // Update categories
                     var allCategories = Set<String>()
-                    if let videos = contentResponse.videos {
-                        allCategories.formUnion(videos.map { $0.category })
-                    }
-                    if let photos = contentResponse.photos {
-                        allCategories.formUnion(photos.map { $0.category })
-                    }
+                    allCategories.formUnion(self?.videos.map { $0.category } ?? [])
+                    allCategories.formUnion(self?.photos.map { $0.category } ?? [])
                     self?.categories = ["All"] + allCategories.sorted()
                     
                     self?.lastUpdated = Date()
                     self?.cacheContent(videos: contentResponse.videos, photos: contentResponse.photos)
+                    self?.errorMessage = nil
+                    
+                    print("Successfully loaded content from network")
                     
                 } catch {
                     print("JSON decode error: \(error)")
-                    self?.errorMessage = "Failed to parse content data"
-                    self?.loadFallbackContent()
+                    self?.errorMessage = "Failed to parse JSON: \(error.localizedDescription)"
                 }
             }
         }.resume()
-        */
     }
     
     private func loadFallbackContent() {
@@ -266,6 +221,7 @@ class ContentStore: ObservableObject {
         allCategories.formUnion(fallbackVideos.map { $0.category })
         allCategories.formUnion(fallbackPhotos.map { $0.category })
         categories = ["All"] + allCategories.sorted()
+        print("Loaded fallback content: \(videos.count) videos, \(photos.count) photos")
     }
     
     private func cacheContent(videos: [Video]?, photos: [Photo]?) {
