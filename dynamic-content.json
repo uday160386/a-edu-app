@@ -1,93 +1,93 @@
 {
   "videos": [
     {
-            title: "THE WISE CHILD : Learning Lesson for Kids",
-            youtubeID: "AjZBZFuos8Q", // Actual kid-friendly video: Super Simple Songs - Colors Song
-            thumbnailURL: "https://img.youtube.com/vi/AjZBZFuos8Q/maxresdefault.jpg",
-            category: "Stories",
-            duration: "6:38",
-            ageRating: "8+"
-        ),
+            "title": "THE WISE CHILD : Learning Lesson for Kids",
+             "youtubeID": "AjZBZFuos8Q", 
+             "thumbnailURL": "https://img.youtube.com/vi/AjZBZFuos8Q/maxresdefault.jpg",
+             "category": "Stories",
+             "duration": "6:38",
+             "ageRating": "8+"
+        },
         {
-            title: "Bad Wolf and the Intelligent Buffalo",
-            youtubeID: "2REgyGbR00w", // Actual kid-friendly video: Super Simple Songs - Count to 10
-            thumbnailURL: "https://img.youtube.com/vi/2REgyGbR00w/maxresdefault.jpg",
-            category: "Stories",
-            duration: "4.33",
-            ageRating: "8+"
-        ),
+            "title": "Bad Wolf and the Intelligent Buffalo",
+             "youtubeID": "2REgyGbR00w", 
+             "thumbnailURL": "https://img.youtube.com/vi/2REgyGbR00w/maxresdefault.jpg",
+             "category": "Stories",
+             "duration": "4.33",
+             "ageRating": "8+"
+        },
         {
-            title: "Be respectful & listen | Kids story to learn respect parents and peers",
-            youtubeID: "VG3arGjg0Hk", // Actual kid-friendly video: Super Simple Songs - Old MacDonald
-            thumbnailURL: "https://img.youtube.com/vi/VG3arGjg0Hk/maxresdefault.jpg",
-            category: "Stories",
-            duration: "9.41",
-            ageRating: "1+"
-        ),
+            "title": "Be respectful & listen | Kids story to learn respect parents and peers",
+             "youtubeID": "VG3arGjg0Hk", 
+             "thumbnailURL": "https://img.youtube.com/vi/VG3arGjg0Hk/maxresdefault.jpg",
+             "category": "Stories",
+             "duration": "9.41",
+             "ageRating": "1+"
+        },
         {
-            title: "Wild Cat and The Princess Mouse",
-            youtubeID: "UHUZJoqLW-I", // Actual kid-friendly video: Super Simple Songs - ABC Song
-            thumbnailURL: "https://img.youtube.com/vi/UHUZJoqLW-I/maxresdefault.jpg",
-            category: "Stories",
-            duration: "4.19",
-            ageRating: "8+"
-        ),
+            "title": "Wild Cat and The Princess Mouse",
+             "youtubeID": "UHUZJoqLW-I", 
+             "thumbnailURL": "https://img.youtube.com/vi/UHUZJoqLW-I/maxresdefault.jpg",
+             "category": "Stories",
+             "duration": "4.19",
+             "ageRating": "8+"
+        },
         {
-            title: "Story Of Needle Tree & Oak Tree",
-            youtubeID: "ygOHQ7V2gBo", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/ygOHQ7V2gBo/maxresdefault.jpg",
-            category: "Stories",
-            duration: "15.07",
-            ageRating: "8+"
-        ),
+            "title": "Story Of Needle Tree & Oak Tree",
+             "youtubeID": "ygOHQ7V2gBo", 
+             "thumbnailURL": "https://img.youtube.com/vi/ygOHQ7V2gBo/maxresdefault.jpg",
+             "category": "Stories",
+             "duration": "15.07",
+             "ageRating": "8+"
+        },
         {
-            title: "Ammadu Lets Do Kummudu Full Video Song",
-            youtubeID: "tTSYcSHeGRo", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/tTSYcSHeGRo/maxresdefault.jpg",
-            category: "Music",
-            duration: "3.26",
-            ageRating: "8+"
-        ),
+            "title": "Ammadu Lets Do Kummudu Full Video Song",
+             "youtubeID": "tTSYcSHeGRo", 
+             "thumbnailURL": "https://img.youtube.com/vi/tTSYcSHeGRo/maxresdefault.jpg",
+             "category": "Music",
+             "duration": "3.26",
+             "ageRating": "8+"
+        },
         {
-            title: "Haanikaarak Bapu",
-            youtubeID: "Q7F6ZlEoIUI", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/Q7F6ZlEoIUI/maxresdefault.jpg",
-            category: "Music",
-            duration: "5.09",
-            ageRating: "8+"
-        ),
+            "title": "Haanikaarak Bapu",
+             "youtubeID": "Q7F6ZlEoIUI", 
+             "thumbnailURL": "https://img.youtube.com/vi/Q7F6ZlEoIUI/maxresdefault.jpg",
+             "category": "Music",
+             "duration": "5.09",
+             "ageRating": "8+"
+        },
         {
-            title: "Learn Multiplication Songs for Children ",
-            youtubeID: "oPINS56lDes", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/oPINS56lDes/maxresdefault.jpg",
-            category: "Educational",
-            duration: "6.28",
-            ageRating: "8+"
-        ),
+            "title": "Learn Multiplication Songs for Children ",
+             "youtubeID": "oPINS56lDes", 
+             "thumbnailURL": "https://img.youtube.com/vi/oPINS56lDes/maxresdefault.jpg",
+             "category": "Educational",
+             "duration": "6.28",
+             "ageRating": "8+"
+        },
         {
-            title: "Maths Quiz for Kids ",
-            youtubeID: "U_6Nr8yGfQk", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/U_6Nr8yGfQk/maxresdefault.jpg",
-            category: "Educational",
-            duration: "11.39",
-            ageRating: "8+"
-        ),
+            "title": "Maths Quiz for Kids ",
+             "youtubeID": "U_6Nr8yGfQk", 
+             "thumbnailURL": "https://img.youtube.com/vi/U_6Nr8yGfQk/maxresdefault.jpg",
+             "category": "Educational",
+             "duration": "11.39",
+             "ageRating": "8+"
+        },
         {
-            title: "Speak With Your Kids",
-            youtubeID: "MhADBlNU59I", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/MhADBlNU59I/maxresdefault.jpg",
-            category: "Educational",
-            duration: "7.34",
-            ageRating: "8+"
-        ),
+            "title": "Speak With Your Kids",
+             "youtubeID": "MhADBlNU59I", 
+             "thumbnailURL": "https://img.youtube.com/vi/MhADBlNU59I/maxresdefault.jpg",
+             "category": "Educational",
+             "duration": "7.34",
+             "ageRating": "8+"
+        },
         {
-            title: "Top 5 Skiing Destinations in Australia",
-            youtubeID: "JswY0gfALt0", // Actual kid-friendly video: Shapes Song
-            thumbnailURL: "https://img.youtube.com/vi/JswY0gfALt0/maxresdefault.jpg",
-            category: "Travel & Tour",
-            duration: "8.22",
-            ageRating: "8+"
-        )
+            "title": "Top 5 Skiing Destinations in Australia",
+             "youtubeID": "JswY0gfALt0", 
+             "thumbnailURL": "https://img.youtube.com/vi/JswY0gfALt0/maxresdefault.jpg",
+             "category": "Travel & Tour",
+             "duration": "8.22",
+             "ageRating": "8+"
+        }
   ],
   "photos": [
     {
