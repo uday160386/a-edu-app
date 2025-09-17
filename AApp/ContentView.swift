@@ -185,6 +185,12 @@ class ContentStore: ObservableObject {
     @Published var dailyWatchLimit: TimeInterval = 1800 // 30 minutes
     @Published var parentalControlsEnabled = true
     
+    // Hourglass Timer
+    @Published var hourglassTimer: TimeInterval = 0 // Current session timer
+    @Published var hourglassLimit: TimeInterval = 900 // 15 minutes default
+    @Published var isHourglassActive = false
+    @Published var hourglassStartTime: Date?
+    
     init() {
         loadContent()
     }
@@ -285,12 +291,47 @@ class ContentStore: ObservableObject {
         UserDefaults.standard.set(0, forKey: "dailyWatchTime")
     }
     
+    // MARK: - Hourglass Timer Functions
+    func startHourglassTimer() {
+        isHourglassActive = true
+        hourglassStartTime = Date()
+        hourglassTimer = 0
+    }
+    
+    func stopHourglassTimer() {
+        isHourglassActive = false
+        hourglassStartTime = nil
+        hourglassTimer = 0
+    }
+    
+    func updateHourglassTimer() {
+        guard isHourglassActive, let startTime = hourglassStartTime else { return }
+        hourglassTimer = Date().timeIntervalSince(startTime)
+    }
+    
+    func resetHourglassTimer() {
+        hourglassTimer = 0
+        if isHourglassActive {
+            hourglassStartTime = Date()
+        }
+    }
+    
     var canWatchMore: Bool {
+        if isHourglassActive && hourglassTimer >= hourglassLimit {
+            return false
+        }
         return !parentalControlsEnabled || watchTime < dailyWatchLimit
     }
     
     var remainingTime: TimeInterval {
+        if isHourglassActive {
+            return max(0, hourglassLimit - hourglassTimer)
+        }
         return max(0, dailyWatchLimit - watchTime)
+    }
+    
+    var hourglassRemainingTime: TimeInterval {
+        return max(0, hourglassLimit - hourglassTimer)
     }
 }
 
@@ -300,6 +341,11 @@ struct ContentView: View {
     @State private var selectedContentType: ContentType = .videos
     @State private var selectedCategory = "All"
     @State private var showingParentalControls = false
+    @State private var showingMenu = false
+    @State private var showingHourglassSettings = false
+    
+    // Timer for updating hourglass
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var filteredVideos: [Video] {
         if selectedCategory == "All" {
@@ -319,33 +365,19 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                // Content type selector
-                HStack(spacing: 0) {
-                    ForEach(ContentType.allCases, id: \.self) { contentType in
-                        Button(action: {
-                            selectedContentType = contentType
-                        }) {
-                            HStack {
-                                Image(systemName: contentType.icon)
-                                Text(contentType.rawValue)
-                                    .fontWeight(.medium)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(selectedContentType == contentType ? Color.blue : Color.clear)
-                            .foregroundColor(selectedContentType == contentType ? .white : .blue)
+            VStack(spacing: 0) {
+                // Watch time indicator (only for videos)
+                if selectedContentType == .videos && (contentStore.parentalControlsEnabled || contentStore.isHourglassActive) {
+                    VStack(spacing: 8) {
+                        if contentStore.parentalControlsEnabled {
+                            WatchTimeIndicator(contentStore: contentStore)
+                        }
+                        if contentStore.isHourglassActive {
+                            HourglassIndicator(contentStore: contentStore)
                         }
                     }
-                }
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(10)
-                .padding(.horizontal)
-                
-                // Header with watch time indicator (only for videos)
-                if selectedContentType == .videos && contentStore.parentalControlsEnabled {
-                    WatchTimeIndicator(contentStore: contentStore)
-                        .padding()
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                 }
                 
                 // Loading/Error State
@@ -373,6 +405,7 @@ struct ContentView: View {
                         }
                         .padding(.horizontal)
                     }
+                    .padding(.vertical, 8)
                     
                     // Error message if any
                     if let errorMessage = contentStore.errorMessage {
@@ -392,14 +425,22 @@ struct ContentView: View {
                     } else {
                         PhotoGridView(photos: filteredPhotos)
                     }
-                    
-                    Spacer()
                 }
             }
             .navigationTitle(selectedContentType == .videos ? "🎥 Abhi's Edu TV" : "📸 Abhi's Edu Photos")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showingMenu = true
+                    }) {
+                        Image(systemName: "line.horizontal.3")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         contentStore.refreshContent()
                     }) {
@@ -409,24 +450,258 @@ struct ContentView: View {
                     }
                     .disabled(contentStore.isLoading)
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingParentalControls = true
-                    }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                    }
-                }
+            }
+            .sheet(isPresented: $showingMenu) {
+                HamburgerMenuView(
+                    selectedContentType: $selectedContentType,
+                    showingParentalControls: $showingParentalControls,
+                    showingHourglassSettings: $showingHourglassSettings,
+                    contentStore: contentStore,
+                    onDismiss: { showingMenu = false }
+                )
             }
             .sheet(isPresented: $showingParentalControls) {
                 ParentalControlsView(contentStore: contentStore)
+            }
+            .sheet(isPresented: $showingHourglassSettings) {
+                HourglassSettingsView(contentStore: contentStore)
+            }
+            .onReceive(timer) { _ in
+                if contentStore.isHourglassActive {
+                    contentStore.updateHourglassTimer()
+                }
             }
             .refreshable {
                 contentStore.refreshContent()
             }
         }
+    }
+}
+
+// MARK: - Hamburger Menu View
+struct HamburgerMenuView: View {
+    @Binding var selectedContentType: ContentType
+    @Binding var showingParentalControls: Bool
+    @Binding var showingHourglassSettings: Bool
+    @ObservedObject var contentStore: ContentStore
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Abhi's Edu App")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Safe learning for kids")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.all, 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.blue.opacity(0.1))
+                
+                // Menu Items
+                VStack(spacing: 0) {
+                    // Content Type Tabs
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("CONTENT")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+                            .padding(.bottom, 8)
+                        
+                        ForEach(ContentType.allCases, id: \.self) { contentType in
+                            MenuRow(
+                                icon: contentType.icon,
+                                title: contentType.rawValue,
+                                isSelected: selectedContentType == contentType
+                            ) {
+                                selectedContentType = contentType
+                                onDismiss()
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .padding(.vertical, 10)
+                    
+                    // Settings and Controls
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("SETTINGS")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
+                        
+                        MenuRow(
+                            icon: "gearshape.fill",
+                            title: "Parental Controls"
+                        ) {
+                            showingParentalControls = true
+                            onDismiss()
+                        }
+                        
+                        MenuRow(
+                            icon: "hourglass",
+                            title: "Hourglass Timer"
+                        ) {
+                            showingHourglassSettings = true
+                            onDismiss()
+                        }
+                        
+                        MenuRow(
+                            icon: "arrow.clockwise",
+                            title: "Refresh Content"
+                        ) {
+                            contentStore.refreshContent()
+                            onDismiss()
+                        }
+                    }
+                    
+                    Divider()
+                        .padding(.vertical, 10)
+                    
+                    // Stats
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("STATS")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
+                        
+                        MenuStatRow(
+                            icon: "play.rectangle.fill",
+                            title: "Videos",
+                            value: "\(contentStore.videos.count)"
+                        )
+                        
+                        MenuStatRow(
+                            icon: "photo.fill",
+                            title: "Photos",
+                            value: "\(contentStore.photos.count)"
+                        )
+                        
+                        if contentStore.parentalControlsEnabled {
+                            MenuStatRow(
+                                icon: "clock.fill",
+                                title: "Watch Time Today",
+                                value: formatTime(contentStore.watchTime)
+                            )
+                        }
+                        
+                        if contentStore.isHourglassActive {
+                            MenuStatRow(
+                                icon: "hourglass",
+                                title: "Session Timer",
+                                value: formatTime(contentStore.hourglassTimer)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Footer
+                VStack(spacing: 4) {
+                    Text("Version 1.0")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("Made with ❤️ for kids")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        onDismiss()
+                    }
+                    .fontWeight(.medium)
+                }
+            }
+        }
+    }
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+// MARK: - Menu Row
+struct MenuRow: View {
+    let icon: String
+    let title: String
+    var isSelected: Bool = false
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 15) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(isSelected ? .white : .blue)
+                    .frame(width: 24, height: 24)
+                
+                Text(title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(isSelected ? .white : .primary)
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.body)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.blue : Color.clear)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Menu Stat Row
+struct MenuStatRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    
+    var body: some View {
+        HStack(spacing: 15) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.secondary)
+                .frame(width: 24, height: 24)
+            
+            Text(title)
+                .font(.body)
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.body)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 }
 
@@ -502,6 +777,314 @@ struct PhotoGridView: View {
                 .padding()
             }
         }
+    }
+}
+
+// MARK: - Hourglass Indicator
+struct HourglassIndicator: View {
+    @ObservedObject var contentStore: ContentStore
+    
+    var progress: Double {
+        guard contentStore.hourglassLimit > 0 else { return 0 }
+        return min(contentStore.hourglassTimer / contentStore.hourglassLimit, 1.0)
+    }
+    
+    var body: some View {
+        HStack {
+            // Custom Hourglass Visual
+            HourglassView(progress: progress, isActive: contentStore.isHourglassActive)
+                .frame(width: 30, height: 36)
+            
+            Text("Session: \(formatTime(contentStore.hourglassTimer)) / \(formatTime(contentStore.hourglassLimit))")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            if contentStore.hourglassTimer >= contentStore.hourglassLimit {
+                Text("Session Complete!")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.purple)
+            } else if contentStore.isHourglassActive {
+                Text("\(formatTime(contentStore.hourglassRemainingTime)) left")
+                    .font(.caption)
+                    .foregroundColor(.purple)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color.purple.opacity(0.1))
+        .cornerRadius(10)
+    }
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+// MARK: - Custom Hourglass View
+struct HourglassView: View {
+    let progress: Double
+    let isActive: Bool
+    
+    var body: some View {
+        ZStack {
+            // Hourglass Frame
+            Path { path in
+                // Top bulb
+                path.move(to: CGPoint(x: 5, y: 2))
+                path.addLine(to: CGPoint(x: 25, y: 2))
+                path.addLine(to: CGPoint(x: 22, y: 5))
+                path.addLine(to: CGPoint(x: 8, y: 5))
+                path.closeSubpath()
+                
+                // Bottom bulb
+                path.move(to: CGPoint(x: 8, y: 31))
+                path.addLine(to: CGPoint(x: 22, y: 31))
+                path.addLine(to: CGPoint(x: 25, y: 34))
+                path.addLine(to: CGPoint(x: 5, y: 34))
+                path.closeSubpath()
+                
+                // Glass outline
+                path.move(to: CGPoint(x: 8, y: 5))
+                path.addLine(to: CGPoint(x: 22, y: 5))
+                path.addLine(to: CGPoint(x: 15, y: 18))
+                path.addLine(to: CGPoint(x: 22, y: 31))
+                path.addLine(to: CGPoint(x: 8, y: 31))
+                path.addLine(to: CGPoint(x: 15, y: 18))
+                path.closeSubpath()
+            }
+            .stroke(Color.brown, lineWidth: 2)
+            
+            // Top sand (remaining)
+            if progress < 1.0 {
+                Path { path in
+                    let topHeight = 13 * (1.0 - progress)
+                    let topY = 5 + (13 - topHeight)
+                    let topWidth = 14 - (6 * (progress))
+                    let centerX: CGFloat = 15
+                    
+                    path.move(to: CGPoint(x: centerX - topWidth/2, y: topY))
+                    path.addLine(to: CGPoint(x: centerX + topWidth/2, y: topY))
+                    path.addLine(to: CGPoint(x: centerX, y: 18))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            }
+            
+            // Bottom sand (elapsed)
+            if progress > 0 {
+                Path { path in
+                    let bottomHeight = 13 * progress
+                    let bottomY = 31 - bottomHeight
+                    let bottomWidth = 6 + (8 * progress)
+                    let centerX: CGFloat = 15
+                    
+                    path.move(to: CGPoint(x: centerX - bottomWidth/2, y: 31))
+                    path.addLine(to: CGPoint(x: centerX + bottomWidth/2, y: 31))
+                    path.addLine(to: CGPoint(x: centerX, y: bottomY))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color.orange.opacity(0.8), Color.yellow.opacity(0.6)],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                )
+            }
+            
+            // Falling sand particles (when active)
+            if isActive && progress < 1.0 {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Circle()
+                            .fill(Color.orange.opacity(0.6))
+                            .frame(width: 2, height: 2)
+                            .offset(x: -1, y: 0)
+                        
+                        Circle()
+                            .fill(Color.yellow.opacity(0.4))
+                            .frame(width: 1.5, height: 1.5)
+                        
+                        Circle()
+                            .fill(Color.orange.opacity(0.5))
+                            .frame(width: 1, height: 1)
+                            .offset(x: 1, y: -1)
+                        
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .animation(
+                    Animation.easeInOut(duration: 0.8)
+                        .repeatForever(autoreverses: false),
+                    value: isActive
+                )
+            }
+            
+            // Glass reflection
+            Path { path in
+                path.move(to: CGPoint(x: 9, y: 7))
+                path.addLine(to: CGPoint(x: 11, y: 9))
+                path.addLine(to: CGPoint(x: 11, y: 15))
+                path.addLine(to: CGPoint(x: 9, y: 17))
+            }
+            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+        }
+        .scaleEffect(isActive ? 1.1 : 1.0)
+        .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isActive)
+    }
+}
+
+// MARK: - Hourglass Settings View
+struct HourglassSettingsView: View {
+    @ObservedObject var contentStore: ContentStore
+    @Environment(\.presentationMode) var presentationMode
+    @State private var tempHourglassLimit: Double
+    
+    init(contentStore: ContentStore) {
+        self.contentStore = contentStore
+        self._tempHourglassLimit = State(initialValue: contentStore.hourglassLimit / 60.0) // Convert to minutes
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Hourglass Timer")) {
+                    HStack {
+                        HourglassView(progress: 0.3, isActive: false)
+                            .frame(width: 30, height: 36)
+                        
+                        VStack(alignment: .leading) {
+                            Text("Session Timer")
+                                .font(.headline)
+                            Text("Set a timer for focused screen time sessions")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Section("Timer Settings") {
+                    VStack(alignment: .leading) {
+                        Text("Session Duration: \(Int(tempHourglassLimit)) minutes")
+                            .font(.subheadline)
+                        
+                        Slider(value: $tempHourglassLimit, in: 5...60, step: 5)
+                            .accentColor(.purple)
+                    }
+                    
+                    HStack {
+                        Text("Current Session:")
+                        Spacer()
+                        if contentStore.isHourglassActive {
+                            Text(formatTime(contentStore.hourglassTimer))
+                                .foregroundColor(.purple)
+                                .fontWeight(.medium)
+                        } else {
+                            Text("Not started")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Section("Timer Controls") {
+                    if !contentStore.isHourglassActive {
+                        Button(action: {
+                            contentStore.hourglassLimit = tempHourglassLimit * 60.0
+                            contentStore.startHourglassTimer()
+                        }) {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text("Start Session Timer")
+                            }
+                            .foregroundColor(.green)
+                        }
+                    } else {
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                contentStore.resetHourglassTimer()
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise")
+                                    Text("Reset Timer")
+                                }
+                                .foregroundColor(.orange)
+                            }
+                            
+                            Button(action: {
+                                contentStore.stopHourglassTimer()
+                            }) {
+                                HStack {
+                                    Image(systemName: "stop.fill")
+                                    Text("Stop Timer")
+                                }
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
+                }
+                
+                Section("How It Works") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "1.circle.fill")
+                                .foregroundColor(.purple)
+                            Text("Set your desired session length")
+                        }
+                        
+                        HStack {
+                            Image(systemName: "2.circle.fill")
+                                .foregroundColor(.purple)
+                            Text("Start the timer for focused screen time")
+                        }
+                        
+                        HStack {
+                            Image(systemName: "3.circle.fill")
+                                .foregroundColor(.purple)
+                            Text("When time's up, take a break!")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle("Hourglass Timer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        contentStore.hourglassLimit = tempHourglassLimit * 60.0
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 

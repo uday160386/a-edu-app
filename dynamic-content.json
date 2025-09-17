@@ -1,0 +1,22 @@
+{
+  "videos": [
+    {
+      "title": "THE WISE CHILD : Learning Lesson for Kids",
+      "youtubeID": "AjZBZFuos8Q",
+      "thumbnailURL": "https://img.youtube.com/vi/AjZBZFuos8Q/maxresdefault.jpg",
+      "category": "Stories",
+      "duration": "6:38",
+      "ageRating": "8+"
+    }
+  ],
+  "photos": [
+    {
+      "title": "Beautiful Rainbow",
+      "imageURL": "https://example.com/image.jpg",
+      "thumbnailURL": "https://example.com/thumb.jpg",
+      "category": "Nature",
+      "description": "Educational description",
+      "ageRating": "All Ages"
+    }
+  ]
+}
